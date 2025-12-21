@@ -12,7 +12,10 @@ public class DungeonGenerator : MonoBehaviour
     public int maxRoomSize = 12;
     public int maxRooms = 8;
     public GameObject floorPrefab;
-    public int seed;
+    [Header("Dungeon Settings")]
+    public int seed = 0;           // if 0, generate randomly
+    public bool useRandomSeed = true;
+
     public GameObject wallPrefab;
     HashSet<Vector2Int> floorPositions = new HashSet<Vector2Int>();
     private List<RectInt> rooms = new List<RectInt>();
@@ -30,11 +33,28 @@ public class DungeonGenerator : MonoBehaviour
     void GenerateDungeon()
     {
         ClearDungeon();
+
+        // Initialize random seed
+        if (useRandomSeed || seed == 0)
+            seed = Random.Range(int.MinValue, int.MaxValue);
+
         Random.InitState(seed);
+
         rooms.Clear();
         floorPositions.Clear();
 
-        for (int i = 0; i < maxRooms; i++)
+        GenerateRooms();
+        BuildRooms();
+        BuildCorridors();
+        BuildWalls();
+        SpawnPlayer();
+
+        Debug.Log("Dungeon Seed: " + seed);
+    }
+    void GenerateRooms()
+    {
+        int attempts = 0; // to avoid infinite loops
+        while (rooms.Count < maxRooms && attempts < maxRooms * 5)
         {
             int roomWidth = Random.Range(minRoomSize, maxRoomSize);
             int roomHeight = Random.Range(minRoomSize, maxRoomSize);
@@ -48,11 +68,11 @@ public class DungeonGenerator : MonoBehaviour
             foreach (var room in rooms)
             {
                 RectInt expandedRoom = new RectInt(
-                room.xMin - 1,
-                room.yMin - 1,
-                room.width + 2,
-                room.height + 2
-            );
+                    room.xMin - 1,
+                    room.yMin - 1,
+                    room.width + 2,
+                    room.height + 2
+                );
                 if (newRoom.Overlaps(expandedRoom))
                 {
                     overlaps = true;
@@ -61,16 +81,12 @@ public class DungeonGenerator : MonoBehaviour
             }
 
             if (!overlaps)
-            {
                 rooms.Add(newRoom);
-            }
-        }
 
-        BuildRooms();
-        BuildCorridors();
-        BuildWalls();
-        SpawnPlayer();
+            attempts++;
+        }
     }
+
 
     void BuildRooms()
     {
@@ -194,15 +210,19 @@ public class DungeonGenerator : MonoBehaviour
     {
         if (rooms.Count == 0 || playerPrefab == null) return;
 
-        // Pick a random room
+        // Pick a room and random position
         RectInt room = rooms[Random.Range(0, rooms.Count)];
-
-        // Pick a random position inside the room
         int x = Random.Range(room.xMin, room.xMax);
         int z = Random.Range(room.yMin, room.yMax);
+        Vector3 spawnPos = new Vector3(x, 1f, z);
 
-        Vector3 spawnPos = new Vector3(x, 1f, z); // 1 unit above floor
-        Instantiate(playerPrefab, spawnPos, Quaternion.identity);
+        GameObject playerInstance = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
+
+        // Assign camera to ThirdPersonController
+        ThirdPersonController controller = playerInstance.GetComponent<ThirdPersonController>();
+        if (controller != null && Camera.main != null)
+            controller.cameraTransform = Camera.main.transform;
     }
+
 
 }
