@@ -24,6 +24,10 @@ public class DungeonGenerator : MonoBehaviour
     public int corridorWidth = 3;
     [Header("Player Settings")]
     public GameObject playerPrefab;
+    [Header("Collectible Settings")]
+    public GameObject collectiblePrefab;
+    public int minCollectiblesPerRoom = 1;
+    public int maxCollectiblesPerRoom = 3;
 
     void Start()
     {
@@ -47,6 +51,7 @@ public class DungeonGenerator : MonoBehaviour
         BuildRooms();
         BuildCorridors();
         BuildWalls();
+        SpawnCollectibles();
         SpawnPlayer();
 
         Debug.Log("Dungeon Seed: " + seed);
@@ -224,5 +229,44 @@ public class DungeonGenerator : MonoBehaviour
             controller.cameraTransform = Camera.main.transform;
     }
 
+    void SpawnCollectibles()
+    {
+        if (collectiblePrefab == null) return;
+
+        foreach (RectInt room in rooms)
+        {
+            int collectibleCount = Random.Range(
+                minCollectiblesPerRoom,
+                maxCollectiblesPerRoom + 1
+            );
+
+            HashSet<Vector2Int> usedPositions = new HashSet<Vector2Int>();
+
+            for (int i = 0; i < collectibleCount; i++)
+            {
+                int attempts = 0;
+
+                while (attempts < 10)
+                {
+                    int x = Random.Range(room.xMin + 1, room.xMax - 1);
+                    int z = Random.Range(room.yMin + 1, room.yMax - 1);
+
+                    Vector2Int gridPos = new Vector2Int(x, z);
+
+                    if (!floorPositions.Contains(gridPos) || usedPositions.Contains(gridPos))
+                    {
+                        attempts++;
+                        continue;
+                    }
+
+                    usedPositions.Add(gridPos);
+
+                    Vector3 worldPos = new Vector3(x, 0.5f, z);
+                    Instantiate(collectiblePrefab, worldPos, Quaternion.identity, transform);
+                    break;
+                }
+            }
+        }
+    }
 
 }

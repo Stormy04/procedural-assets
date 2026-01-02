@@ -159,6 +159,9 @@ MonoBehaviour:
   wallPrefab: {fileID: 828868140665096589, guid: e56540779fd58d545a440211283a61dd, type: 3}
   corridorWidth: 3
   playerPrefab: {fileID: 8581761039237227817, guid: 9f85fd4c53a31404fb095f946d91f5b7, type: 3}
+  collectiblePrefab: {fileID: 32336677736585181, guid: d38d7e32c77a29749a2d88db88d839fb, type: 3}
+  minCollectiblesPerRoom: 0
+  maxCollectiblesPerRoom: 2
 --- !u!4 &795821308
 Transform:
   m_ObjectHideFlags: 0
