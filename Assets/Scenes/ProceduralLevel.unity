@@ -189,7 +189,6 @@ GameObject:
   - component: {fileID: 1096706044}
   - component: {fileID: 1096706043}
   - component: {fileID: 1096706042}
-  - component: {fileID: 1096706041}
   - component: {fileID: 1096706046}
   m_Layer: 0
   m_Name: Camera
@@ -198,21 +197,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1096706041
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1096706040}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abeeaac8bc6b5704f97fc0d0f1cf68c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  target: {fileID: 0}
-  offset: {x: 0, y: 5, z: -7}
-  smoothSpeed: 5
 --- !u!114 &1096706042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -345,7 +329,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 0}
   offset: {x: 0, y: 3, z: -6}
-  rotationSpeed: 3
+  snapAngle: 45
   smoothSpeed: 10
   pitchMin: -20
   pitchMax: 60

@@ -4,7 +4,7 @@ public class ThirdPersonCamera : MonoBehaviour
 {
     public Transform target;          // Player, dynamically assigned
     public Vector3 offset = new Vector3(0, 3, -6);
-    public float rotationSpeed = 5f;
+    public float snapAngle = 45f;     // Angle to snap per key press
     public float smoothSpeed = 10f;
     public float pitchMin = -20f;
     public float pitchMax = 60f;
@@ -26,26 +26,60 @@ public class ThirdPersonCamera : MonoBehaviour
                 return;
         }
 
-        // Mouse input
-        yaw += Input.GetAxis("Mouse X") * rotationSpeed;
-        pitch -= Input.GetAxis("Mouse Y") * rotationSpeed;
-        pitch = Mathf.Clamp(pitch, pitchMin, pitchMax);
-
-        Quaternion rotation = Quaternion.Euler(pitch, yaw, 0);
-        Vector3 desiredPosition = target.position + rotation * offset;
-
-        // Check for collisions
-        RaycastHit hit;
-        Vector3 dir = desiredPosition - target.position;
-        if (Physics.SphereCast(target.position, collisionRadius, dir.normalized, out hit, dir.magnitude, collisionLayers))
+        // Q and E input for snappy turning left and right
+        if (Input.GetKeyDown(KeyCode.Q))
         {
-            desiredPosition = hit.point - dir.normalized * collisionRadius;
+            yaw -= snapAngle;
+        }
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            yaw += snapAngle;
+        }
+
+        // Player center
+        CharacterController controller = target.GetComponent<CharacterController>();
+        Vector3 targetCenter = target.position;
+        if (controller != null)
+            targetCenter += controller.center;
+
+        // Desired camera position
+        Quaternion rotation = Quaternion.Euler(pitch, yaw, 0);
+        Vector3 desiredPosition = targetCenter + rotation * offset;
+
+        // Collision check
+        Vector3 dir = desiredPosition - targetCenter;
+        float distance = dir.magnitude;
+
+        float minDistance = 1f;
+        RaycastHit hit;
+        bool hitSomething = Physics.SphereCast(
+            targetCenter,
+            collisionRadius,
+            dir.normalized,
+            out hit,
+            distance,
+            collisionLayers,
+            QueryTriggerInteraction.Ignore
+        );
+
+        if (hitSomething)
+        {
+            float hitDist = hit.distance - (collisionRadius + 0.05f);
+            // Clamp to minDistance
+            float finalDist = Mathf.Max(hitDist, minDistance);
+            desiredPosition = targetCenter + dir.normalized * finalDist;
+        }
+        else
+        {
+            // Clamp to minDistance if not hitting anything
+            if (distance < minDistance)
+                desiredPosition = targetCenter + dir.normalized * minDistance;
         }
 
         // Smooth movement
         transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
 
-        // Look at player
-        transform.LookAt(target.position + Vector3.up * 1.5f);
+        // Look at center
+        transform.LookAt(targetCenter);
     }
 }
