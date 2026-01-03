@@ -148,11 +148,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baf49b9c517943f4a94e320a3a723e82, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dungeonWidth: 40
-  dungeonHeight: 40
+  dungeonWidth: 60
+  dungeonHeight: 60
   minRoomSize: 6
   maxRoomSize: 12
-  maxRooms: 8
+  minRooms: 12
+  maxRooms: 20
+  minRoomSpacing: 2
   floorPrefab: {fileID: 1071624790971161288, guid: 115db524a13c3ab4a95735785e856b59, type: 3}
   seed: 3
   useRandomSeed: 1
