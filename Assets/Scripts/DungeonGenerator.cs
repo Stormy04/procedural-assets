@@ -10,6 +10,8 @@ public class DungeonGenerator : MonoBehaviour
     [Header("Room Settings")]
     public int minRoomSize = 6;
     public int maxRoomSize = 12;
+    [Min(1)]
+    public int minRooms = 3;
     public int maxRooms = 8;
     public GameObject floorPrefab;
     [Header("Dungeon Settings")]
@@ -65,7 +67,7 @@ public class DungeonGenerator : MonoBehaviour
         GenerateRooms();
         AssignRoomTypes();
         BuildRooms();
-        BuildCorridors();
+        BuildSparseCorridors();
         BuildWalls();
         SpawnCollectibles();
         SpawnPlayer();
@@ -113,6 +115,11 @@ public class DungeonGenerator : MonoBehaviour
             }
 
             attempts++;
+        }
+
+        if (rooms.Count < minRooms)
+        {
+            Debug.LogWarning($"Only {rooms.Count} rooms generated, which is less than the minimum ({minRooms}). Consider adjusting dungeon size or room settings.");
         }
     }
 
@@ -385,6 +392,70 @@ public class DungeonGenerator : MonoBehaviour
             case RoomType.Treasure: return Color.yellow;
             case RoomType.Combat: return Color.magenta;
             default: return Color.gray;
+        }
+    }
+    void BuildSparseCorridors()
+    {
+        // Track which rooms have been connected
+        HashSet<int> connectedRooms = new HashSet<int>();
+        System.Random rng = new System.Random(seed);
+
+        // Shuffle room indices for random pairing
+        List<int> roomIndices = new List<int>();
+        for (int i = 0; i < rooms.Count; i++)
+            roomIndices.Add(i);
+
+        // Optionally shuffle for randomness
+        for (int i = roomIndices.Count - 1; i > 0; i--)
+        {
+            int swap = rng.Next(i + 1);
+            int temp = roomIndices[i];
+            roomIndices[i] = roomIndices[swap];
+            roomIndices[swap] = temp;
+        }
+
+        // Try to connect each room to one other room (at most one connection)
+        for (int i = 0; i < roomIndices.Count; i++)
+        {
+            int a = roomIndices[i];
+            if (connectedRooms.Contains(a)) continue;
+
+            // Find a random unconnected room to connect to
+            List<int> candidates = new List<int>();
+            for (int j = 0; j < roomIndices.Count; j++)
+            {
+                if (i == j) continue;
+                int b = roomIndices[j];
+                if (!connectedRooms.Contains(b))
+                    candidates.Add(b);
+            }
+
+            if (candidates.Count > 0)
+            {
+                int b = candidates[rng.Next(candidates.Count)];
+                connectedRooms.Add(a);
+                connectedRooms.Add(b);
+
+                Vector2Int centerA = new Vector2Int(
+                    rooms[a].bounds.x + rooms[a].bounds.width / 2,
+                    rooms[a].bounds.y + rooms[a].bounds.height / 2
+                );
+                Vector2Int centerB = new Vector2Int(
+                    rooms[b].bounds.x + rooms[b].bounds.width / 2,
+                    rooms[b].bounds.y + rooms[b].bounds.height / 2
+                );
+
+                if (Random.value < 0.5f)
+                {
+                    CreateHorizontalCorridor(centerA.x, centerB.x, centerA.y);
+                    CreateVerticalCorridor(centerA.y, centerB.y, centerB.x);
+                }
+                else
+                {
+                    CreateVerticalCorridor(centerA.y, centerB.y, centerA.x);
+                    CreateHorizontalCorridor(centerA.x, centerB.x, centerB.y);
+                }
+            }
         }
     }
 
