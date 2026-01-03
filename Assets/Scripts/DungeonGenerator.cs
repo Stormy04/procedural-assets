@@ -13,6 +13,7 @@ public class DungeonGenerator : MonoBehaviour
     [Min(1)]
     public int minRooms = 3;
     public int maxRooms = 8;
+    public int minRoomSpacing = 2;
     public GameObject floorPrefab;
     [Header("Dungeon Settings")]
     public int seed = 0;           // if 0, generate randomly
@@ -92,10 +93,10 @@ public class DungeonGenerator : MonoBehaviour
             foreach (var room in rooms)
             {
                 RectInt expandedRoom = new RectInt(
-                    room.bounds.xMin - 1,
-                    room.bounds.yMin - 1,
-                    room.bounds.width + 2,
-                    room.bounds.height + 2
+                    room.bounds.xMin - minRoomSpacing,
+                    room.bounds.yMin - minRoomSpacing,
+                    room.bounds.width + minRoomSpacing * 2,
+                    room.bounds.height + minRoomSpacing * 2
                 );
 
                 if (newRoomRect.Overlaps(expandedRoom))
@@ -200,9 +201,10 @@ public class DungeonGenerator : MonoBehaviour
             {
                 int zPos = z + offset - corridorWidth / 2; // center corridor
                 Vector2Int gridPos = new Vector2Int(x, zPos);
-                if (!floorPositions.Contains(gridPos))
+
+                // Only add and instantiate if not already present (prevents overlap)
+                if (floorPositions.Add(gridPos))
                 {
-                    floorPositions.Add(gridPos);
                     Vector3 floorWorldPos = new Vector3(x, 0, zPos);
                     Instantiate(floorPrefab, floorWorldPos, Quaternion.identity, transform);
                 }
@@ -218,9 +220,10 @@ public class DungeonGenerator : MonoBehaviour
             {
                 int xPos = x + offset - corridorWidth / 2; // center corridor
                 Vector2Int gridPos = new Vector2Int(xPos, z);
-                if (!floorPositions.Contains(gridPos))
+
+                // Only add and instantiate if not already present (prevents overlap)
+                if (floorPositions.Add(gridPos))
                 {
-                    floorPositions.Add(gridPos);
                     Vector3 floorWorldPos = new Vector3(xPos, 0, z);
                     Instantiate(floorPrefab, floorWorldPos, Quaternion.identity, transform);
                 }
@@ -396,56 +399,57 @@ public class DungeonGenerator : MonoBehaviour
     }
     void BuildSparseCorridors()
     {
-        // Track which rooms have been connected
-        HashSet<int> connectedRooms = new HashSet<int>();
-        System.Random rng = new System.Random(seed);
+        if (rooms.Count < 2) return;
 
-        // Shuffle room indices for random pairing
-        List<int> roomIndices = new List<int>();
-        for (int i = 0; i < rooms.Count; i++)
-            roomIndices.Add(i);
-
-        // Optionally shuffle for randomness
-        for (int i = roomIndices.Count - 1; i > 0; i--)
+        // List of room centers
+        List<Vector2Int> centers = new List<Vector2Int>();
+        foreach (var room in rooms)
         {
-            int swap = rng.Next(i + 1);
-            int temp = roomIndices[i];
-            roomIndices[i] = roomIndices[swap];
-            roomIndices[swap] = temp;
+            centers.Add(new Vector2Int(
+                room.bounds.x + room.bounds.width / 2,
+                room.bounds.y + room.bounds.height / 2
+            ));
         }
 
-        // Try to connect each room to one other room (at most one connection)
-        for (int i = 0; i < roomIndices.Count; i++)
-        {
-            int a = roomIndices[i];
-            if (connectedRooms.Contains(a)) continue;
+        // Track connected and unconnected rooms
+        HashSet<int> connected = new HashSet<int>();
+        List<int> unconnected = new List<int>();
+        for (int i = 0; i < centers.Count; i++)
+            unconnected.Add(i);
 
-            // Find a random unconnected room to connect to
-            List<int> candidates = new List<int>();
-            for (int j = 0; j < roomIndices.Count; j++)
+        // Start with the first room
+        connected.Add(0);
+        unconnected.Remove(0);
+
+        System.Random rng = new System.Random(seed);
+
+        while (unconnected.Count > 0)
+        {
+            float minDist = float.MaxValue;
+            int from = -1, to = -1;
+
+            // Find the closest pair: one in connected, one in unconnected
+            foreach (int c in connected)
             {
-                if (i == j) continue;
-                int b = roomIndices[j];
-                if (!connectedRooms.Contains(b))
-                    candidates.Add(b);
+                foreach (int u in unconnected)
+                {
+                    float dist = Vector2Int.Distance(centers[c], centers[u]);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        from = c;
+                        to = u;
+                    }
+                }
             }
 
-            if (candidates.Count > 0)
+            if (from != -1 && to != -1)
             {
-                int b = candidates[rng.Next(candidates.Count)];
-                connectedRooms.Add(a);
-                connectedRooms.Add(b);
+                // Connect the two rooms
+                Vector2Int centerA = centers[from];
+                Vector2Int centerB = centers[to];
 
-                Vector2Int centerA = new Vector2Int(
-                    rooms[a].bounds.x + rooms[a].bounds.width / 2,
-                    rooms[a].bounds.y + rooms[a].bounds.height / 2
-                );
-                Vector2Int centerB = new Vector2Int(
-                    rooms[b].bounds.x + rooms[b].bounds.width / 2,
-                    rooms[b].bounds.y + rooms[b].bounds.height / 2
-                );
-
-                if (Random.value < 0.5f)
+                if (rng.NextDouble() < 0.5)
                 {
                     CreateHorizontalCorridor(centerA.x, centerB.x, centerA.y);
                     CreateVerticalCorridor(centerA.y, centerB.y, centerB.x);
@@ -455,6 +459,14 @@ public class DungeonGenerator : MonoBehaviour
                     CreateVerticalCorridor(centerA.y, centerB.y, centerA.x);
                     CreateHorizontalCorridor(centerA.x, centerB.x, centerB.y);
                 }
+
+                connected.Add(to);
+                unconnected.Remove(to);
+            }
+            else
+            {
+                // Should not happen, but break to avoid infinite loop
+                break;
             }
         }
     }
