@@ -137,10 +137,11 @@ public class DungeonGenerator : MonoBehaviour
                         transform
                     );
 
-                    // OPTIONAL: color floors by room type (debug / visual clarity)
-                    Renderer r = floor.GetComponent<Renderer>();
+                    // Robust: color floors by room type (handles child renderers and material instancing)
+                    Renderer r = floor.GetComponentInChildren<Renderer>();
                     if (r != null)
                     {
+                        r.material = new Material(r.material);
                         r.material.color = GetRoomColor(room.type);
                     }
                 }
@@ -193,13 +194,13 @@ public class DungeonGenerator : MonoBehaviour
                 int zPos = z + offset - corridorWidth / 2; // center corridor
                 Vector2Int gridPos = new Vector2Int(x, zPos);
                 if (!floorPositions.Contains(gridPos))
+                {
                     floorPositions.Add(gridPos);
-
-                Vector3 floorWorldPos = new Vector3(x, 0, zPos);
-                Instantiate(floorPrefab, floorWorldPos, Quaternion.identity, transform);
+                    Vector3 floorWorldPos = new Vector3(x, 0, zPos);
+                    Instantiate(floorPrefab, floorWorldPos, Quaternion.identity, transform);
+                }
             }
         }
-
     }
 
     void CreateVerticalCorridor(int zStart, int zEnd, int x)
@@ -211,13 +212,13 @@ public class DungeonGenerator : MonoBehaviour
                 int xPos = x + offset - corridorWidth / 2; // center corridor
                 Vector2Int gridPos = new Vector2Int(xPos, z);
                 if (!floorPositions.Contains(gridPos))
+                {
                     floorPositions.Add(gridPos);
-
-                Vector3 floorWorldPos = new Vector3(xPos, 0, z);
-                Instantiate(floorPrefab, floorWorldPos, Quaternion.identity, transform);
+                    Vector3 floorWorldPos = new Vector3(xPos, 0, z);
+                    Instantiate(floorPrefab, floorWorldPos, Quaternion.identity, transform);
+                }
             }
         }
-
     }
     void BuildWalls()
     {
